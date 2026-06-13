@@ -117,6 +117,50 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .expense-name{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .expense-meta{font-size:11px;color:var(--text2);margin-top:2px;}
 .date-group{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin:14px 0 7px;}
+.exp-actions{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.exp-amount{font-size:16px;font-weight:600;color:var(--red);white-space:nowrap;}
+.exp-cur{font-size:10px;color:var(--text3);}
+.exp-btns{display:flex;gap:4px;margin-top:2px;}
+.exp-btn{background:none;border:none;cursor:pointer;font-size:14px;padding:3px 5px;border-radius:6px;transition:background .15s;}
+.exp-btn.edit{color:var(--accent2);}
+.exp-btn.edit:hover{background:rgba(168,85,247,.15);}
+.exp-btn.del{color:var(--red);}
+.exp-btn.del:hover{background:rgba(239,68,68,.15);}
+
+/* ── HISTORY SLICER ── */
+.hist-slicer{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;}
+.hist-slicer-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.hist-slicer-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.hist-slicer-grid label{font-size:10px;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;}
+.hist-slicer-grid input[type=date]{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;-webkit-appearance:none;color-scheme:dark;font-family:var(--font);}
+.hist-slicer-grid input[type=date]:focus{border-color:var(--accent2);}
+.hist-pay-filter{margin-bottom:10px;}
+.hist-pay-filter label{font-size:10px;color:var(--text3);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+.hist-pay-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.hist-pay-chip{padding:5px 11px;border-radius:16px;font-size:12px;border:1px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;transition:all .15s;}
+.hist-pay-chip.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+.hist-slicer-footer{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px solid var(--border);}
+.hist-slicer-footer span{font-size:12px;color:var(--text2);}
+.hist-slicer-footer strong{color:var(--accent2);}
+.hist-clear-btn{font-size:11px;color:var(--text3);background:none;border:1px solid var(--border);border-radius:6px;padding:3px 9px;cursor:pointer;}
+
+/* ── EDIT MODAL ── */
+.edit-modal-body{padding:0;}
+.edit-field{margin-bottom:13px;}
+.edit-field label{display:block;font-size:11px;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;}
+.edit-field input,.edit-field select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:15px;font-family:var(--font);outline:none;transition:border-color .2s;-webkit-appearance:none;}
+.edit-field input:focus,.edit-field select:focus{border-color:var(--accent2);}
+.edit-field select option{background:#1a1a2e;}
+.edit-two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.edit-cat-pills{display:flex;flex-wrap:wrap;gap:7px;margin-top:2px;}
+.edit-cat-pill{padding:5px 11px;border-radius:16px;font-size:12px;border:1px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;transition:all .2s;}
+.edit-cat-pill.sel{background:var(--accent);border-color:var(--accent);color:#fff;}
+.edit-pay-pills{display:flex;flex-wrap:wrap;gap:7px;margin-top:2px;}
+.edit-pay-pill{padding:5px 11px;border-radius:16px;font-size:12px;border:1px solid var(--border);background:var(--bg);color:var(--text2);cursor:pointer;transition:all .2s;}
+.edit-pay-pill.sel{background:var(--surface2);border-color:var(--accent2);color:var(--accent2);}
+.edit-amt-wrap{position:relative;}
+.edit-amt-wrap input{padding-right:44px;}
+.edit-calc-btn{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:rgba(124,58,237,.25);border:1px solid rgba(168,85,247,.4);border-radius:7px;color:var(--accent2);font-size:15px;cursor:pointer;padding:3px 7px;line-height:1;}
 
 /* ── REPORTS ── */
 .report-tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;}
@@ -431,7 +475,30 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 
   <!-- HISTORY -->
   <div class="section" id="tab-history">
-    <div class="section-header"><h2>All Expenses</h2><span id="historyCount" style="font-size:12px;color:var(--text2)"></span></div>
+    <!-- History Slicer -->
+    <div class="hist-slicer">
+      <div class="hist-slicer-title">🔍 Filter Expenses</div>
+      <div class="hist-slicer-grid">
+        <div>
+          <label>From Date</label>
+          <input type="date" id="histFrom" onchange="applyHistSlicer()" color-scheme="dark">
+        </div>
+        <div>
+          <label>To Date</label>
+          <input type="date" id="histTo" onchange="applyHistSlicer()" color-scheme="dark">
+        </div>
+      </div>
+      <div class="hist-pay-filter">
+        <label>Payment Method</label>
+        <div class="hist-pay-chips" id="histPayChips"></div>
+      </div>
+      <div class="hist-slicer-footer">
+        <span><strong id="histSlicerCount">0</strong> results · <strong id="histSlicerTotal">0</strong></span>
+        <button class="hist-clear-btn" onclick="clearHistSlicer()">✕ Clear</button>
+      </div>
+    </div>
+    <!-- Category filter bar -->
+    <div class="section-header"><h2>Expenses</h2><span id="historyCount" style="font-size:12px;color:var(--text2)"></span></div>
     <div class="filter-bar" id="filterBar"></div>
     <div id="expenseList"></div>
   </div>
@@ -586,6 +653,54 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <button class="btn btn-secondary" onclick="importJSONFile()">📥 Import JSON</button>
       </div>
       <input type="file" id="jsonImportFile" accept=".json" style="display:none" onchange="handleJSONImport(event)">
+    </div>
+  </div>
+</div>
+
+<!-- Edit Expense Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">✏️ Edit Expense</div>
+    <div class="edit-modal-body">
+      <div class="edit-field">
+        <label>Description</label>
+        <input type="text" id="edit-desc" placeholder="What did you spend on?" maxlength="80">
+      </div>
+      <div class="edit-two-col">
+        <div class="edit-field">
+          <label>Amount</label>
+          <div class="edit-amt-wrap">
+            <input type="number" id="edit-amount" placeholder="0.00" step="0.01" min="0" readonly onclick="openEditCalc()">
+            <button class="edit-calc-btn" onclick="openEditCalc()" type="button">🧮</button>
+          </div>
+        </div>
+        <div class="edit-field">
+          <label>Currency</label>
+          <select id="edit-currency"></select>
+        </div>
+      </div>
+      <div class="edit-field">
+        <label>Date</label>
+        <input type="date" id="edit-date" style="color-scheme:dark">
+      </div>
+      <div class="edit-field">
+        <label>Category</label>
+        <div class="edit-cat-pills" id="editCatPills"></div>
+      </div>
+      <div class="edit-field">
+        <label>Payment Method</label>
+        <div class="edit-pay-pills" id="editPayPills"></div>
+      </div>
+      <div class="edit-field">
+        <label>Note (optional)</label>
+        <input type="text" id="edit-note" placeholder="Add a note..." maxlength="120">
+      </div>
+      <input type="hidden" id="edit-id">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+        <button class="btn btn-secondary" onclick="closeModal('editModal')" style="margin-top:0">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEdit()" style="margin-top:0">Save Changes</button>
+      </div>
     </div>
   </div>
 </div>
@@ -866,6 +981,7 @@ function bootApp(uname,udata){
   updateStats();renderHistory();renderFilterBar();
   checkGoogleStatus();
   initSlicer();
+  initHistSlicer();
   selectedCat='';selectedPay='';
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===0));
   document.querySelectorAll('.section').forEach((s,i)=>s.classList.toggle('active',i===0));
@@ -896,6 +1012,10 @@ function savePayments(){localStorage.setItem(uk('pays'),JSON.stringify(paymentMe
 let expenses=[],categories=[],paymentMethods=[],activeCurrencies=[],globalCurrency='AED';
 let selectedCat='',selectedPay='',currentFilter='all';
 let selectedDate='',selectedEmoji='📦';
+// History slicer state
+let histFrom='',histTo='',histPayFilter=new Set();
+// Edit modal state
+let editCalcTarget='main'; // 'main' or 'edit'
 let calYear=new Date().getFullYear(),calMonth=new Date().getMonth();
 let gClientId='',gToken=null,gFileId='',gEmail='';
 
@@ -977,6 +1097,7 @@ function updateSlicerSummary(){
 // ════════════════════════════════════════════
 let calcCurrent='0',calcOperand=null,calcOperator=null,calcNewNum=false,calcExprStr='';
 function openCalc(){
+  editCalcTarget='main';
   calcCurrent='0';calcOperand=null;calcOperator=null;calcNewNum=false;calcExprStr='';
   const cur=document.getElementById('inp-amount').value;
   if(cur&&!isNaN(parseFloat(cur))){calcCurrent=cur;}
@@ -1010,8 +1131,11 @@ function calcToggleSign(){calcCurrent=(parseFloat(calcCurrent)*-1).toString();up
 function calcPercent(){calcCurrent=(parseFloat(calcCurrent)/100).toString();updateCalcDisplay();}
 function useCalcResult(){
   const val=parseFloat(calcCurrent);
-  if(!isNaN(val)&&val>0){document.getElementById('inp-amount').value=parseFloat(val.toFixed(2));closeCalc();toast('Amount set: '+val.toFixed(2));}
-  else toast('Enter a valid amount');
+  if(!isNaN(val)&&val>0){
+    const fieldId=editCalcTarget==='edit'?'edit-amount':'inp-amount';
+    document.getElementById(fieldId).value=parseFloat(val.toFixed(2));
+    closeCalc();toast('Amount set: '+val.toFixed(2));
+  }else toast('Enter a valid amount');
 }
 
 // ════════════════════════════════════════════
@@ -1164,9 +1288,10 @@ function resetForm(){
   document.getElementById('inp-currency').value=globalCurrency;selectedDate=todayStr();setCalDisplay();
   selectedCat='';selectedPay='';renderCatPills();renderPayPills();
 }
-function deleteExpense(id){
+function deleteExpense(idStr){
   if(!confirm('Delete this expense?'))return;
-  expenses=expenses.filter(e=>e.id!==id);saveExpenses();updateStats();renderHistory();renderFilterBar();
+  expenses=expenses.filter(e=>String(e.id)!==String(idStr));
+  saveExpenses();updateStats();renderHistory();renderFilterBar();
   if(gToken)syncToDrive();toast('Deleted');
 }
 
@@ -1191,18 +1316,74 @@ function updateStats(){
 // ════════════════════════════════════════════
 //  HISTORY
 // ════════════════════════════════════════════
+// ════════════════════════════════════════════
+//  HISTORY SLICER
+// ════════════════════════════════════════════
+function initHistSlicer(){
+  // Set default date range to all time
+  histFrom=''; histTo=''; histPayFilter=new Set();
+  document.getElementById('histFrom').value='';
+  document.getElementById('histTo').value='';
+  renderHistPayChips();
+}
+
+function renderHistPayChips(){
+  const allPays=[...new Set(expenses.map(e=>e.payment))].filter(Boolean);
+  document.getElementById('histPayChips').innerHTML=
+    allPays.map(p=>`<div class="hist-pay-chip ${histPayFilter.has(p)?'active':''}" onclick="toggleHistPay('${p.replace(/'/g,"&#39;")}')">${p}</div>`).join('');
+}
+
+function toggleHistPay(pay){
+  if(histPayFilter.has(pay))histPayFilter.delete(pay);
+  else histPayFilter.add(pay);
+  renderHistPayChips();
+  applyHistSlicer();
+}
+
+function applyHistSlicer(){
+  histFrom=document.getElementById('histFrom').value||'';
+  histTo=document.getElementById('histTo').value||'';
+  if(histFrom&&histTo&&histFrom>histTo){toast('From date must be before To date');return;}
+  renderHistory();
+}
+
+function clearHistSlicer(){
+  histFrom='';histTo='';histPayFilter=new Set();
+  document.getElementById('histFrom').value='';
+  document.getElementById('histTo').value='';
+  renderHistPayChips();
+  renderHistory();
+}
+
+function getHistFiltered(){
+  let result=currentFilter==='all'?expenses:expenses.filter(e=>e.category===currentFilter);
+  if(histFrom) result=result.filter(e=>e.date>=histFrom);
+  if(histTo)   result=result.filter(e=>e.date<=histTo);
+  if(histPayFilter.size>0) result=result.filter(e=>histPayFilter.has(e.payment));
+  return result;
+}
+
 function renderFilterBar(){
   const allCats=[...new Set(expenses.map(e=>e.category))].filter(Boolean);
   document.getElementById('filterBar').innerHTML=
     `<div class="filter-chip ${currentFilter==='all'?'active':''}" data-filter="all" onclick="filterHistory(this)">All</div>`+
     allCats.map(cat=>{const c=categories.find(c=>c.name===cat);return`<div class="filter-chip ${currentFilter===cat?'active':''}" data-filter="${cat}" onclick="filterHistory(this)">${c?c.icon:''} ${cat}</div>`;}).join('');
+  renderHistPayChips();
 }
 function filterHistory(el){document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');currentFilter=el.dataset.filter;renderHistory();}
+
 function renderHistory(){
   const list=document.getElementById('expenseList');
-  const filtered=currentFilter==='all'?expenses:expenses.filter(e=>e.category===currentFilter);
+  const filtered=getHistFiltered();
+  const total=filtered.reduce((s,e)=>s+e.amount,0);
   document.getElementById('historyCount').textContent=filtered.length+' entries';
-  if(!filtered.length){list.innerHTML=`<div class="empty-state"><div class="icon">💸</div><p>No expenses yet.<br>Add your first one!</p></div>`;return;}
+  document.getElementById('histSlicerCount').textContent=filtered.length;
+  document.getElementById('histSlicerTotal').textContent=getCurSym(globalCurrency)+total.toFixed(2);
+
+  if(!filtered.length){
+    list.innerHTML=`<div class="empty-state"><div class="icon">💸</div><p>No expenses match your filters.<br>Try adjusting the date range or payment method.</p></div>`;
+    return;
+  }
   const groups={};filtered.forEach(e=>{if(!groups[e.date])groups[e.date]=[];groups[e.date].push(e);});
   list.innerHTML=Object.keys(groups).sort((a,b)=>b.localeCompare(a)).map(date=>{
     const items=groups[date],dayT=items.reduce((s,e)=>s+e.amount,0),fc=items[0].currency||'AED';
@@ -1214,11 +1395,17 @@ function renderHistory(){
         const color=CAT_COLORS[ci<0?0:ci];const cur=e.currency||'AED';
         return`<div class="expense-item">
           <div class="cat-icon" style="background:${color}22">${icon}</div>
-          <div class="expense-info"><div class="expense-name">${escHtml(e.desc)}</div><div class="expense-meta">${escHtml(e.category)} · ${escHtml(e.payment)}${e.note?' · '+escHtml(e.note):''}</div></div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-            <div style="font-size:16px;font-weight:600;color:var(--red);white-space:nowrap">-${getCurSym(cur)}${e.amount.toFixed(2)}</div>
-            <div style="font-size:10px;color:var(--text3)">${cur}</div>
-            <button onclick="deleteExpense(${e.id})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:13px;padding:2px">✕</button>
+          <div class="expense-info">
+            <div class="expense-name">${escHtml(e.desc)}</div>
+            <div class="expense-meta">${escHtml(e.category)} · ${escHtml(e.payment)}${e.note?' · '+escHtml(e.note):''}</div>
+          </div>
+          <div class="exp-actions">
+            <div class="exp-amount">-${getCurSym(cur)}${e.amount.toFixed(2)}</div>
+            <div class="exp-cur">${cur}</div>
+            <div class="exp-btns">
+              <button class="exp-btn edit" onclick="openEditModal('${e.id}')" title="Edit">✏️</button>
+              <button class="exp-btn del" onclick="deleteExpense('${e.id}')" title="Delete">🗑️</button>
+            </div>
           </div>
         </div>`;}).join('');
   }).join('');
@@ -1229,6 +1416,89 @@ function formatDateLabel(str){
   if(d.toDateString()===today.toDateString())return'Today';
   if(d.toDateString()===yest.toDateString())return'Yesterday';
   return d.toLocaleDateString('en-AE',{weekday:'short',month:'short',day:'numeric'});
+}
+
+// ════════════════════════════════════════════
+//  EDIT EXPENSE
+// ════════════════════════════════════════════
+let editCatSel='', editPaySel='';
+
+function openEditModal(idStr){
+  const e=expenses.find(x=>String(x.id)===String(idStr));
+  if(!e){toast('Expense not found');return;}
+  // Populate fields
+  document.getElementById('edit-id').value=String(e.id);
+  document.getElementById('edit-desc').value=e.desc||'';
+  document.getElementById('edit-amount').value=e.amount||'';
+  document.getElementById('edit-date').value=e.date||todayStr();
+  document.getElementById('edit-note').value=e.note||'';
+
+  // Currency dropdown
+  const curSel=document.getElementById('edit-currency');
+  curSel.innerHTML=activeCurrencies.map(c=>{const x=ALL_CURRENCIES.find(i=>i.code===c);return`<option value="${c}">${c} ${x?x.sym:''}</option>`;}).join('');
+  curSel.value=activeCurrencies.includes(e.currency)?e.currency:(activeCurrencies[0]||'AED');
+
+  // Category pills
+  editCatSel=e.category||'';
+  document.getElementById('editCatPills').innerHTML=
+    categories.map(c=>`<div class="edit-cat-pill ${editCatSel===c.name?'sel':''}" onclick="selectEditCat(this,'${c.name.replace(/'/g,"&#39;")}')">${c.icon} ${c.name}</div>`).join('');
+
+  // Payment pills
+  editPaySel=e.payment||'';
+  document.getElementById('editPayPills').innerHTML=
+    paymentMethods.map(p=>`<div class="edit-pay-pill ${editPaySel===p?'sel':''}" onclick="selectEditPay(this,'${p.replace(/'/g,"&#39;")}')">${p}</div>`).join('');
+
+  document.getElementById('editModal').classList.add('open');
+}
+
+function selectEditCat(el,name){
+  editCatSel=name;
+  document.querySelectorAll('.edit-cat-pill').forEach(p=>p.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function selectEditPay(el,name){
+  editPaySel=name;
+  document.querySelectorAll('.edit-pay-pill').forEach(p=>p.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function saveEdit(){
+  const idStr=document.getElementById('edit-id').value;
+  const idx=expenses.findIndex(x=>String(x.id)===String(idStr));
+  if(idx===-1){toast('Expense not found');return;}
+  const desc=document.getElementById('edit-desc').value.trim();
+  const amount=parseFloat(document.getElementById('edit-amount').value);
+  const currency=document.getElementById('edit-currency').value;
+  const date=document.getElementById('edit-date').value;
+  const note=document.getElementById('edit-note').value.trim();
+  if(!desc){toast('Please enter a description');return;}
+  if(!amount||amount<=0){toast('Please enter a valid amount');return;}
+  if(!date){toast('Please select a date');return;}
+  if(!editCatSel){toast('Please select a category');return;}
+  if(!editPaySel){toast('Please select a payment method');return;}
+  const catObj=categories.find(c=>c.name===editCatSel);
+  expenses[idx]={
+    ...expenses[idx],
+    desc,amount,currency,date,note,
+    payment:editPaySel,category:editCatSel,
+    catIcon:catObj?catObj.icon:'📦',
+    updatedAt:new Date().toISOString()
+  };
+  saveExpenses();updateStats();renderHistory();renderFilterBar();
+  closeModal('editModal');
+  toast('Expense updated ✓');
+  if(gToken)syncToDrive();
+}
+
+// Edit modal calculator (reuses main calc, just targets edit amount field)
+function openEditCalc(){
+  editCalcTarget='edit';
+  calcCurrent='0';calcOperand=null;calcOperator=null;calcNewNum=false;calcExprStr='';
+  const cur=document.getElementById('edit-amount').value;
+  if(cur&&!isNaN(parseFloat(cur)))calcCurrent=cur;
+  updateCalcDisplay();
+  document.getElementById('calcPopup').classList.add('open');
+  document.getElementById('calcOverlay').classList.add('open');
 }
 
 // ════════════════════════════════════════════
