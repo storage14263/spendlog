@@ -775,10 +775,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
         <div style="font-size:11px;color:var(--text3);margin-top:6px">console.cloud.google.com → APIs & Services → Credentials</div>
       </div>
 
-      <!-- Action buttons -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;display:none" id="syncActionBtns">
-        <button id="syncNowBtn" class="btn btn-primary" onclick="syncToDrive()" style="display:none;margin-top:0;padding:11px;font-size:13px">⟳ Sync Now</button>
-        <button id="disconnectBtn" class="btn btn-danger" onclick="disconnectGoogle()" style="display:none;margin-top:0;padding:11px;font-size:13px">Disconnect</button>
+      <!-- Action buttons — always visible container, buttons shown/hidden by JS -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px" id="syncActionBtns">
+        <button id="syncNowBtn" class="btn btn-primary" onclick="manualSync()" style="display:none;margin-top:0;padding:13px;font-size:14px;font-weight:700;letter-spacing:.3px">⟳ Sync Now</button>
+        <button id="disconnectBtn" class="btn btn-danger" onclick="disconnectGoogle()" style="display:none;margin-top:0;padding:13px;font-size:13px">Disconnect</button>
+      </div>
+
+      <!-- Auto-sync status bar -->
+      <div id="autoSyncBar" style="display:none;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:10px 13px;margin-top:12px;font-size:12px;color:var(--text2);display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span>🔄 <strong style="color:var(--text)">Auto-sync</strong> every 24 hours</span>
+          <span id="nextSyncLabel" style="color:var(--accent2);font-size:11px"></span>
+        </div>
+        <div style="margin-top:6px;font-size:11px;color:var(--text3)" id="lastSyncLabel">Last synced: Never</div>
       </div>
     </div>
 
@@ -1148,6 +1157,7 @@ function changePassword(){
 
 function doLogout(){
   if(!confirm('Sign out?'))return;
+  stopAutoSync();
   clearSession();currentUser=null;
   document.getElementById('appScreen').style.display='none';
   document.getElementById('authScreen').style.display='flex';
@@ -2155,38 +2165,157 @@ async function checkGoogleStatus(){
       localStorage.setItem(uk('gemail'),gEmail);
     }catch(e){gEmail='';}
     updateSyncUI(true);
-    toast('Google connected as '+gEmail+'! Syncing…');
+    toast('✅ Connected as '+gEmail+'! Syncing now…');
     await syncToDrive();
+    startAutoSync(); // begin daily auto-sync
     return;
   }
   // Pre-fill client ID if saved
-  if(gClientId)document.getElementById('gclientIdInput').value=gClientId;
-  if(gEmail){updateSyncUI(true);document.getElementById('clientIdSection').style.display='none';}
+  if(gClientId) document.getElementById('gclientIdInput').value=gClientId;
+  if(gEmail&&gToken){
+    updateSyncUI(true);
+    startAutoSync();
+  }else if(gEmail&&!gToken){
+    // Had email saved but token expired
+    document.getElementById('syncDot').className='sync-dot disconnected';
+    document.getElementById('syncName').textContent=gEmail;
+    document.getElementById('syncSub').textContent='Session expired — tap "Sign in with Google" to reconnect';
+    document.getElementById('googleBtn').style.display='flex';
+    document.getElementById('syncNowBtn').style.display='none';
+    document.getElementById('disconnectBtn').style.display='block';
+    document.getElementById('syncEmailDisplay').style.display='block';
+    document.getElementById('syncEmailText').textContent=gEmail;
+    document.getElementById('clientIdSection').style.display='none';
+    loadSyncHistory();
+  }
 }
 
 function updateSyncUI(on){
   document.getElementById('syncDot').className='sync-dot '+(on?'connected':'disconnected');
   document.getElementById('syncName').textContent=on?(gEmail||'Google Account'):'Not connected';
-  if(!on) document.getElementById('syncSub').textContent='Sign in with your Gmail to enable sync';
+
+  // Show/hide Google sign-in button
   document.getElementById('googleBtn').style.display=on?'none':'flex';
+
+  // Show/hide action buttons (Sync Now + Disconnect)
   document.getElementById('syncNowBtn').style.display=on?'block':'none';
   document.getElementById('disconnectBtn').style.display=on?'block':'none';
+
   if(on&&gEmail){
     document.getElementById('syncEmailDisplay').style.display='block';
     document.getElementById('syncEmailText').textContent=gEmail;
     document.getElementById('clientIdSection').style.display='none';
+    document.getElementById('autoSyncBar').style.display='block';
+    updateAutoSyncBar();
+    document.getElementById('syncSub').textContent='Connected — tap Sync Now to back up your data';
   }else{
     document.getElementById('syncEmailDisplay').style.display='none';
     document.getElementById('clientIdSection').style.display='block';
+    document.getElementById('autoSyncBar').style.display='none';
+    if(!on) document.getElementById('syncSub').textContent='Sign in with your Gmail to enable sync';
   }
   if(on) loadSyncHistory();
 }
 
+function updateAutoSyncBar(){
+  const lastSync=localStorage.getItem(uk('lastSync'));
+  const lastSyncEl=document.getElementById('lastSyncLabel');
+  const nextSyncEl=document.getElementById('nextSyncLabel');
+  if(!lastSync){
+    if(lastSyncEl) lastSyncEl.textContent='Last synced: Never';
+    if(nextSyncEl) nextSyncEl.textContent='Sync now to start';
+    return;
+  }
+  const last=new Date(lastSync);
+  const nextSync=new Date(last.getTime()+24*60*60*1000);
+  const now=new Date();
+  const diffMs=nextSync-now;
+  if(lastSyncEl) lastSyncEl.textContent='Last synced: '+syncDateDisplay(lastSync);
+  if(nextSyncEl){
+    if(diffMs<=0){
+      nextSyncEl.textContent='Due now!';
+    }else{
+      const hrs=Math.floor(diffMs/3600000);
+      const mins=Math.floor((diffMs%3600000)/60000);
+      nextSyncEl.textContent=`Next in ${hrs>0?hrs+'h ':''} ${mins}m`;
+    }
+  }
+}
+
 function disconnectGoogle(){
   if(!confirm('Disconnect Google Drive sync?'))return;
+  stopAutoSync();
   gToken=null;gEmail='';gFileId='';
-  localStorage.removeItem(uk('gemail'));localStorage.removeItem(uk('gfid'));
-  updateSyncUI(false);toast('Google Drive disconnected');
+  localStorage.removeItem(uk('gemail'));
+  localStorage.removeItem(uk('gfid'));
+  updateSyncUI(false);
+  toast('Google Drive disconnected');
+}
+
+// ── Manual sync triggered by button ──
+async function manualSync(){
+  if(!gToken){
+    // Token expired — need re-auth
+    toast('Session expired. Reconnecting…');
+    initiateGoogleAuth();
+    return;
+  }
+  const btn=document.getElementById('syncNowBtn');
+  btn.textContent='Syncing…';btn.disabled=true;
+  await syncToDrive();
+  btn.textContent='⟳ Sync Now';btn.disabled=false;
+}
+
+// ── Auto-sync scheduler ──
+// Syncs once per day (every 24h) while the app is open/visible
+let autoSyncTimer=null;
+const AUTO_SYNC_INTERVAL=24*60*60*1000; // 24 hours in ms
+
+function startAutoSync(){
+  stopAutoSync(); // clear any existing timer first
+  if(!gToken||!gEmail) return;
+
+  // Check immediately if a sync is overdue
+  checkAndAutoSync();
+
+  // Then check every 60 seconds (to catch the 24h window)
+  autoSyncTimer=setInterval(()=>{
+    checkAndAutoSync();
+    updateAutoSyncBar(); // refresh countdown display
+  },60*1000);
+
+  // Also sync when tab becomes visible again after being hidden
+  document.addEventListener('visibilitychange',onVisibilityChange);
+}
+
+function stopAutoSync(){
+  if(autoSyncTimer){clearInterval(autoSyncTimer);autoSyncTimer=null;}
+  document.removeEventListener('visibilitychange',onVisibilityChange);
+}
+
+function onVisibilityChange(){
+  if(document.visibilityState==='visible'){
+    checkAndAutoSync();
+    updateAutoSyncBar();
+  }
+}
+
+async function checkAndAutoSync(){
+  if(!gToken||!gEmail) return;
+  const lastSync=localStorage.getItem(uk('lastSync'));
+  if(!lastSync){
+    // Never synced — sync now automatically
+    console.log('SpendLog: Auto-sync — first sync');
+    await syncToDrive();
+    return;
+  }
+  const last=new Date(lastSync);
+  const now=new Date();
+  const diffMs=now-last;
+  if(diffMs>=AUTO_SYNC_INTERVAL){
+    console.log('SpendLog: Auto-sync triggered — 24h elapsed');
+    await syncToDrive();
+  }
 }
 
 // ── Helpers ──
@@ -2250,6 +2379,9 @@ async function syncToDrive(){
     document.getElementById('syncDot').className='sync-dot connected';
     const displayTime=syncDateDisplay(syncTime);
     document.getElementById('syncSub').textContent='Last synced: '+displayTime;
+    if(document.getElementById('lastSyncLabel'))
+      document.getElementById('lastSyncLabel').textContent='Last synced: '+displayTime;
+    updateAutoSyncBar();
     renderSyncHistory(syncTime,stamp,userSlug);
     toast(`✅ Synced! Backup: ${backupName}`);
   }catch(err){
@@ -2258,7 +2390,8 @@ async function syncToDrive(){
     if(err.status===401){gToken=null;updateSyncUI(false);toast('Session expired. Please sign in again.');}
     else toast('Sync failed: '+(err.message||'Check connection'));
   }finally{
-    document.getElementById('syncNowBtn').disabled=false;
+    const btn=document.getElementById('syncNowBtn');
+    if(btn){btn.disabled=false;btn.textContent='⟳ Sync Now';}
   }
 }
 
